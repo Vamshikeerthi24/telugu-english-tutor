@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Allow React frontend to talk to FastAPI
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,10 +20,15 @@ def health():
 async def upload_audio(audio: UploadFile = File(...)):
     contents = await audio.read()
 
-    print(f"Received audio file: {audio.filename}")
+    # Save audio file to backend folder
+    with open("recording.webm", "wb") as f:
+        f.write(contents)
+
+    print(f"Saved file: recording.webm")
     print(f"Size: {len(contents)} bytes")
 
     return {
+        "message": "Audio saved successfully",
         "filename": audio.filename,
         "size": len(contents)
     }
