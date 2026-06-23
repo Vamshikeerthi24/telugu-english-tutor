@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-function MicButton() {
+function MicButton({ setTranscript }) {
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -26,7 +26,7 @@ function MicButton() {
 
       console.log("Recording started");
     } catch (error) {
-      console.error("Microphone Error:", error);
+      console.error(error);
     }
   };
 
@@ -47,8 +47,6 @@ function MicButton() {
           "recording.webm"
         );
 
-        console.log("Sending audio to backend...");
-
         const response = await fetch(
           "http://127.0.0.1:8000/upload-audio",
           {
@@ -57,16 +55,12 @@ function MicButton() {
           }
         );
 
-        console.log("Response status:", response.status);
-
         const data = await response.json();
 
-        console.log("Backend response:", data);
+        setTranscript(data.transcript);
 
-        alert(`Transcript: ${data.transcript}`);
       } catch (error) {
-        console.error("FETCH ERROR:", error);
-        alert("Fetch failed. Check browser console.");
+        console.error(error);
       }
     };
 
@@ -79,8 +73,6 @@ function MicButton() {
 
       streamRef.current = null;
     }
-
-    console.log("Recording stopped");
   };
 
   return (
@@ -97,7 +89,6 @@ function MicButton() {
 }
 
 export default MicButton;
-
         
 
   
