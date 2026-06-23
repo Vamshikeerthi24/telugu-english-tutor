@@ -26,13 +26,15 @@ function MicButton() {
 
       console.log("Recording started");
     } catch (error) {
-      console.error(error);
+      console.error("Microphone Error:", error);
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.onstop = async () => {
+    if (!mediaRecorderRef.current) return;
+
+    mediaRecorderRef.current.onstop = async () => {
+      try {
         const audioBlob = new Blob(chunksRef.current, {
           type: "audio/webm",
         });
@@ -45,6 +47,8 @@ function MicButton() {
           "recording.webm"
         );
 
+        console.log("Sending audio to backend...");
+
         const response = await fetch(
           "http://127.0.0.1:8000/upload-audio",
           {
@@ -53,17 +57,20 @@ function MicButton() {
           }
         );
 
+        console.log("Response status:", response.status);
+
         const data = await response.json();
 
-        alert(
-          `Backend received ${data.size} bytes`
-        );
+        console.log("Backend response:", data);
 
-        console.log(data);
-      };
+        alert(`Transcript: ${data.transcript}`);
+      } catch (error) {
+        console.error("FETCH ERROR:", error);
+        alert("Fetch failed. Check browser console.");
+      }
+    };
 
-      mediaRecorderRef.current.stop();
-    }
+    mediaRecorderRef.current.stop();
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) =>
@@ -72,6 +79,8 @@ function MicButton() {
 
       streamRef.current = null;
     }
+
+    console.log("Recording stopped");
   };
 
   return (

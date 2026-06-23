@@ -1,9 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from faster_whisper import WhisperModel
 
 app = FastAPI()
 
-# Allow React frontend to talk to FastAPI
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -12,23 +12,52 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+print("Loading Whisper model...")
+
+model = WhisperModel(
+    "tiny",
+    device="cpu",
+    compute_type="int8"
+)
+
+print("Whisper model loaded!")
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 @app.post("/upload-audio")
 async def upload_audio(audio: UploadFile = File(...)):
-    contents = await audio.read()
+    try:
+        print("Request received")
 
-    # Save audio file to backend folder
-    with open("recording.webm", "wb") as f:
-        f.write(contents)
+        contents = await audio.read()
 
-    print(f"Saved file: recording.webm")
-    print(f"Size: {len(contents)} bytes")
+        print("Audio bytes:", len(contents))
 
-    return {
-        "message": "Audio saved successfully",
-        "filename": audio.filename,
-        "size": len(contents)
-    }
+        with open("recording.webm", "wb") as f:
+            f.write(contents)
+
+        print("Audio saved")
+
+        segments, info = model.transcribe(
+            "recording.webm"
+        )
+
+        transcript = ""
+
+        for segment in segments:
+            transcript += segment.text + " "
+
+        print("Transcript:", transcript)
+
+        return {
+            "transcript": transcript
+        }
+
+    except Exception as e:
+        print("ERROR:", str(e))
+
+        return {
+            "transcript": f"ERROR: {str(e)}"
+        }
