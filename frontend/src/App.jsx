@@ -1,139 +1,199 @@
-import { useState } from "react";
+import { lessons } from "./data/lessons";
+import { useState, useEffect } from "react";
 import MicButton from "./MicButton";
 
 function App() {
   const [transcript, setTranscript] = useState("");
-  const [lessonIndex, setLessonIndex] = useState(0);
+  const [feedback, setFeedback] = useState("");
 
-  const lessons = [
-    {
-      english: "My name is Vamshi",
-      telugu: "నా పేరు వంశీ",
-      keywords: ["vam", "wam", "name"],
-    },
-    {
-      english: "What is your name?",
-      telugu: "మీ పేరు ఏమిటి?",
-      keywords: ["your", "name"],
-    },
-    {
-      english: "I live in America",
-      telugu: "నేను అమెరికాలో ఉంటాను",
-      keywords: ["america", "live"],
-    },
-  ];
+  const [lessonIndex, setLessonIndex] = useState(() => {
+    const savedLesson = localStorage.getItem("lessonIndex");
+    return savedLesson ? Number(savedLesson) : 0;
+  });
+
+  const [score, setScore] = useState(() => {
+    const savedScore = localStorage.getItem("score");
+    return savedScore ? Number(savedScore) : 0;
+  });
+
+  const [answered, setAnswered] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("lessonIndex", lessonIndex);
+  }, [lessonIndex]);
+
+  useEffect(() => {
+    localStorage.setItem("score", score);
+  }, [score]);
 
   const lesson = lessons[lessonIndex];
 
   const normalizedTranscript = transcript.toLowerCase();
 
-  const isCorrect = lesson.keywords.some((word) =>
-    normalizedTranscript.includes(word)
-  );
+  const isCorrect =
+    transcript &&
+    lesson.keywords.some((word) =>
+      normalizedTranscript.includes(word)
+    );
 
   const progress =
     ((lessonIndex + 1) / lessons.length) * 100;
 
-  const nextLesson = () => {
+  const handleContinue = () => {
+    if (isCorrect) {
+      setScore((prev) => prev + 1);
+    }
+
+    setAnswered(false);
+    setTranscript("");
+    setFeedback("");
+
     if (lessonIndex < lessons.length - 1) {
-      setLessonIndex(lessonIndex + 1);
-      setTranscript("");
+      setLessonIndex((prev) => prev + 1);
     }
   };
 
-  const previousLesson = () => {
-    if (lessonIndex > 0) {
-      setLessonIndex(lessonIndex - 1);
-      setTranscript("");
-    }
+  const restartCourse = () => {
+    setLessonIndex(0);
+    setScore(0);
+    setTranscript("");
+    setFeedback("");
+    setAnswered(false);
+
+    localStorage.removeItem("lessonIndex");
+    localStorage.removeItem("score");
   };
+
+  if (
+    lessonIndex === lessons.length - 1 &&
+    isCorrect
+  ) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="bg-slate-800 p-10 rounded-2xl text-center">
+          <h1 className="text-5xl mb-4">
+            🎉 Course Complete!
+          </h1>
+
+          <p className="text-2xl mb-6">
+            Score: {score + 1}/{lessons.length}
+          </p>
+
+          <button
+            onClick={restartCourse}
+            className="bg-blue-600 px-6 py-3 rounded-xl"
+          >
+            Restart Course
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        padding: "20px",
-        maxWidth: "800px",
-        margin: "auto",
-        textAlign: "center",
-      }}
-    >
-      <h1>Telugu AI Tutor</h1>
+    <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="max-w-4xl mx-auto">
 
-      <h2>
-        Lesson {lessonIndex + 1} of {lessons.length}
-      </h2>
+        <h1 className="text-5xl font-bold text-center mb-8">
+          Telugu AI Tutor
+        </h1>
 
-      <div
-        style={{
-          width: "100%",
-          height: "20px",
-          backgroundColor: "#ddd",
-          borderRadius: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        <div
-          style={{
-            width: `${progress}%`,
-            height: "100%",
-            backgroundColor: "green",
-            borderRadius: "10px",
-          }}
-        ></div>
-      </div>
+        <div className="mb-8">
+          <div className="flex justify-between mb-2">
+            <span>
+              Lesson {lessonIndex + 1} of {lessons.length}
+            </span>
 
-      <div
-        style={{
-          border: "1px solid gray",
-          padding: "20px",
-          marginBottom: "20px",
-        }}
-      >
-        <h3>English</h3>
-        <p>{lesson.english}</p>
+            <span>
+              {Math.round(progress)}%
+            </span>
+          </div>
 
-        <h3>Telugu</h3>
-        <p style={{ fontSize: "24px" }}>
-          {lesson.telugu}
-        </p>
-      </div>
-
-      <MicButton setTranscript={setTranscript} />
-
-      <h2>Your Transcript</h2>
-
-      <div
-        style={{
-          border: "1px solid gray",
-          minHeight: "60px",
-          padding: "10px",
-          marginTop: "10px",
-        }}
-      >
-        {transcript}
-      </div>
-
-      {transcript && (
-        <div style={{ marginTop: "20px" }}>
-          {isCorrect ? (
-            <h2>✅ Correct!</h2>
-          ) : (
-            <h2>❌ Try Again</h2>
-          )}
+          <div className="w-full bg-slate-700 rounded-full h-4">
+            <div
+              className="bg-green-500 h-4 rounded-full"
+              style={{
+                width: `${progress}%`,
+              }}
+            ></div>
+          </div>
         </div>
-      )}
 
-      <div style={{ marginTop: "30px" }}>
-        <button
-          onClick={previousLesson}
-          style={{ marginRight: "10px" }}
-        >
-          Previous
-        </button>
+        <div className="bg-slate-800 rounded-2xl p-8 mb-8">
+          <h3 className="text-slate-400">
+            English
+          </h3>
 
-        <button onClick={nextLesson}>
-          Next Lesson
-        </button>
+          <p className="text-2xl mb-4">
+            {lesson.english}
+          </p>
+
+          <h3 className="text-slate-400">
+            Telugu
+          </h3>
+
+          <p className="text-4xl text-green-400">
+            {lesson.telugu}
+          </p>
+        </div>
+
+        <div className="bg-slate-800 rounded-2xl p-8 mb-8 text-center">
+          <MicButton
+            setTranscript={(text) => {
+              setTranscript(text);
+              setAnswered(true);
+            }}
+            setFeedback={(text) => {
+              setFeedback(text);
+            }}
+          />
+        </div>
+
+        <div className="bg-slate-800 rounded-2xl p-6 mb-6">
+          <h2 className="text-2xl mb-4">
+            Your Transcript
+          </h2>
+
+          <div>
+            {transcript ||
+              "Speak to see your transcript"}
+          </div>
+        </div>
+
+        {feedback && (
+          <div className="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 className="text-2xl mb-4 text-blue-400">
+              AI Teacher Feedback
+            </h2>
+
+            <div className="whitespace-pre-wrap">
+              {feedback}
+            </div>
+          </div>
+        )}
+
+        {transcript && (
+          <div className="text-center">
+            {isCorrect ? (
+              <>
+                <h2 className="text-green-400 text-3xl mb-4">
+                  ✅ Correct!
+                </h2>
+
+                <button
+                  onClick={handleContinue}
+                  className="bg-blue-600 px-6 py-3 rounded-xl"
+                >
+                  Continue →
+                </button>
+              </>
+            ) : (
+              <h2 className="text-red-400 text-3xl">
+                ❌ Try Again
+              </h2>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

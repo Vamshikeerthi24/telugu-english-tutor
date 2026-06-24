@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from faster_whisper import WhisperModel
+from gemini_service import get_feedback
 
 app = FastAPI()
 
@@ -22,42 +23,46 @@ model = WhisperModel(
 
 print("Whisper model loaded!")
 
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
+
 @app.post("/upload-audio")
 async def upload_audio(audio: UploadFile = File(...)):
-    try:
-        print("Request received")
+    print("Request received")
 
-        contents = await audio.read()
+    contents = await audio.read()
 
-        print("Audio bytes:", len(contents))
+    print("Audio bytes:", len(contents))
 
-        with open("recording.webm", "wb") as f:
-            f.write(contents)
+    with open("recording.webm", "wb") as f:
+        f.write(contents)
 
-        print("Audio saved")
+    print("Audio saved")
 
-        segments, info = model.transcribe(
-            "recording.webm"
-        )
+    segments, info = model.transcribe(
+        "recording.webm"
+    )
 
-        transcript = ""
+    transcript = ""
 
-        for segment in segments:
-            transcript += segment.text + " "
+    for segment in segments:
+        transcript += segment.text + " "
 
-        print("Transcript:", transcript)
+    transcript = transcript.strip()
 
-        return {
-            "transcript": transcript
-        }
+    print("Transcript:", transcript)
 
-    except Exception as e:
-        print("ERROR:", str(e))
+    feedback = get_feedback(
+        "My name is Vamshi",
+        transcript
+    )
 
-        return {
-            "transcript": f"ERROR: {str(e)}"
-        }
+    print("Feedback:", feedback)
+
+    return {
+        "transcript": transcript,
+        "feedback": feedback
+    }
